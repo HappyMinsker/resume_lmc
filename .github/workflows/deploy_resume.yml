@@ -54,4 +54,4 @@ jobs:
           ESCAPED_REPO="$(printf %q "$REPO_URL")"
           ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "set -euo pipefail; mkdir -p $ESCAPED_PATH; if [ -d $ESCAPED_PATH/.git ]; then cd $ESCAPED_PATH && git fetch origin && git reset --hard origin/main; else git clone --depth 1 --branch main $ESCAPED_REPO $ESCAPED_PATH; fi"
+            "set -euo pipefail; mkdir -p $ESCAPED_PATH; cd $ESCAPED_PATH; if [ ! -d .git ]; then git init; fi; if git remote get-url origin >/dev/null 2>&1; then git remote set-url origin $ESCAPED_REPO; else git remote add origin $ESCAPED_REPO; fi; git fetch --depth 1 origin main; git reset --hard origin/main"
