@@ -34,6 +34,7 @@ jobs:
           DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_REPO: ${{ secrets.DEPLOY_REPO }}
         run: |
           set -euo pipefail
           for name in SSH_KEY DEPLOY_HOST DEPLOY_USER DEPLOY_PATH; do
@@ -48,6 +49,9 @@ jobs:
           printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "$SSH_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          REPO_URL="${DEPLOY_REPO:-https://github.com/${GITHUB_REPOSITORY}.git}"
+          ESCAPED_PATH="$(printf %q "$DEPLOY_PATH")"
+          ESCAPED_REPO="$(printf %q "$REPO_URL")"
           ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "cd $(printf %q "$DEPLOY_PATH") && git fetch origin && git reset --hard origin/main"
+            "set -euo pipefail; mkdir -p $ESCAPED_PATH; if [ -d $ESCAPED_PATH/.git ]; then cd $ESCAPED_PATH && git fetch origin && git reset --hard origin/main; else git clone --depth 1 --branch main $ESCAPED_REPO $ESCAPED_PATH; fi"
