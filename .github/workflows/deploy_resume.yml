@@ -1,19 +1,53 @@
-name: Publish Resume to Cpanel
-on: 
+name: Publish Resume
+on:
   push:
-    branches: 
+    branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
-  FTP-Deploy-Action:
-    name: FTP-Deploy-Action
+  ftp_deploy_original_site:
+    name: Deploy original site via FTP
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2.1.0
-      with:
-        fetch-depth: 2
-    - name: FTP-Deploy-Action
-      uses: SamKirkland/FTP-Deploy-Action@4.3.3
-      with:
-        server: ${{ secrets.FTP_RESUME }}
-        username: ${{ secrets.FTP_RESUME_USER }}
-        password: ${{ secrets.FTP_RESUME_PWD }}
+      - uses: actions/checkout@v2.1.0
+        with:
+          fetch-depth: 2
+      - name: FTP deploy
+        uses: SamKirkland/FTP-Deploy-Action@4.3.3
+        with:
+          server: ${{ secrets.FTP_RESUME }}
+          username: ${{ secrets.FTP_RESUME_USER }}
+          password: ${{ secrets.FTP_RESUME_PWD }}
+
+  deploy_lxc139:
+    name: Deploy new site on LXC139
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          for name in SSH_KEY DEPLOY_HOST DEPLOY_USER DEPLOY_PATH; do
+            eval "v=\${$name:-}"
+            if [ -z "$v" ]; then
+              echo "::error::Required secret is empty: $name"
+              exit 1
+            fi
+          done
+          SSH_PORT="${DEPLOY_SSH_PORT:-22}"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$SSH_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd $(printf %q "$DEPLOY_PATH") && git fetch origin && git reset --hard origin/main"
