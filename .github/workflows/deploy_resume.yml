@@ -9,20 +9,6 @@ permissions:
   contents: read
 
 jobs:
-  ftp_deploy_original_site:
-    name: Deploy original site via FTP
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2.1.0
-        with:
-          fetch-depth: 2
-      - name: FTP deploy
-        uses: SamKirkland/FTP-Deploy-Action@4.3.3
-        with:
-          server: ${{ secrets.FTP_RESUME }}
-          username: ${{ secrets.FTP_RESUME_USER }}
-          password: ${{ secrets.FTP_RESUME_PWD }}
-
   deploy_lxc139:
     name: LXC 139 sync (LAN timer — no WAN SSH)
     runs-on: ubuntu-latest
@@ -32,5 +18,4 @@ jobs:
           echo "GitHub push recorded."
           echo "Live site sync: LXC 139 runs resume-site-git-sync.timer every minute"
           echo "(git fetch + reset --hard origin/main in /var/www/resume.daniit-software.by)."
-          echo "Cloud runners cannot SSH to 192.168.x.x — WAN 93.84.96.153:42022 removed."
-          echo "Delete unused DEPLOY_* repository secrets in GitHub Settings."
+          echo "Hoster.by resume.даниит.com retired 25 Jul 2026 — FTP deploy removed."
